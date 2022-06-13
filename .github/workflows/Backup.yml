@@ -1,0 +1,37 @@
+name: Backup
+on:
+  schedule:
+    - cron: "10 10 1-31/2 * *"
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check and release
+        run: |
+            rm -fr *
+            sudo apt update
+            sudo apt install upx git -y
+            sudo snap install go --classic
+            git clone https://github.com/mikefarah/yq yq > /dev/null
+            cd yq
+            GOOS=linux GOARCH=amd64 go build -trimpath --ldflags "-s -w"  -o ../xyq
+            cd ..
+            rm -rf yq
+            upx -9 xyq
+            shopt -s extglob
+            mv xyq yq
+            mkdir -p .github/workflows
+            wget -qO .github/workflows/Backup.yml https://github.com/${{ github.repository }}/raw/main/.github/workflows/Backup.yml &> /dev/null
+            git config --global init.defaultBranch main
+            git init
+            git add .
+            git config user.name "mainians"
+            git config user.email "61817665+Scaleya@users.noreply.github.com"
+            git commit -m "yq amd64"
+            git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+            git push origin main --force
+            
